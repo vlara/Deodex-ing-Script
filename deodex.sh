@@ -1,36 +1,37 @@
 #!/bin/bash
 
 ERROR=0
-smalibaksmali_dir=/home/mistadman/bin/android_dev_tools
+smalibaksmali_dir=/home/vlara/Android/tool
+api=9
 
-clear; for x in `find -iname "*.odex"|sort`; do 
+clear; for x in `find -iname "*.odex"|sort`; do
     odexFile=${x/\.\//}
     [ -e ${file1/odex/jar} ] && JarFile=${odexFile/odex/jar} || Jarfile=${odexFile/odex/apk}
 
     echo "Uncompiling $odexFile"
-    java -Xmx512m -jar $smalibaksmali_dir/baksmali.jar -x $odexFile -o /tmp/$odexFile.out 
+    java -Xmx512m -jar $smalibaksmali_dir/baksmali.jar -a $api -x $odexFile -o $odexFile.out
 
-    if [ -e /tmp/$odexFile.out ]; then
-        java -Xmx512m -jar $smalibaksmali_dir/smali.jar /tmp/$odexFile.out -o /tmp/$odexFile-classes.dex
-        ERROR=1
-    fi
-
-    if [ -e /tmp/$odexFile-classes.dex ]; then
-        echo "Adding classes.dex to $JarFile"
-        mv /tmp/$odexFile-classes.dex /tmp/classes.dex
-        zip -q $JarFile /tmp/classes.dex
-        rm -rf /tmp/$odexFile.out /tmp/$odexFile-classes.dex /tmp/classes.dex
+    if [ -e $odexFile.out ]; then
+        java -Xmx512m -jar $smalibaksmali_dir/smali.jar $odexFile.out -o $odexFile-classes.dex
     else
-        rm -rf /tmp/$odexFile.out /tmp/$odexFile-classes.dex /tmp/classes.dex
-        ERROR=1
-        echo "Error!"
+       ERROR=1
     fi
 
+    if [ -e $odexFile-classes.dex ]; then
+        echo "Adding classes.dex to $JarFile"
+        mv $odexFile-classes.dex classes.dex
+        jar uf $JarFile classes.dex
+        rm -rf $odexFile.out $odexFile-classes.dex classes.dex
+        rm $odexFile
+    else
+        rm -rf $odexFile.out $odexFile-classes.dex classes.dex
+        ERROR=1
+    fi
     echo
 done
 
 if [ $ERROR -eq 1 ]; then
-    rm -rf *.odex
-else
     echo "Error(s) detected. *.odex files not deleted."
+else
+    echo "No Error(s)"
 fi
